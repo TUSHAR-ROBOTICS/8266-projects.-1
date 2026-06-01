@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Panel</title>
+
+<style>
+body {
+  margin:0;
+  background:#000;
+  color:#fff;
+  font-family: monospace;
+}
+
+.header {
+  padding:12px;
+  text-align:center;
+  border-bottom:1px solid #fff;
+}
+
+.container {
+  display:grid;
+  gap:10px;
+  padding:10px;
+}
+
+.panel {
+  border:1px solid #fff;
+  padding:10px;
+}
+
+button {
+  padding:10px;
+  margin:5px;
+  background:#000;
+  color:#fff;
+  border:1px solid #fff;
+  cursor:pointer;
+}
+
+button:hover {
+  background:#fff;
+  color:#000;
+}
+
+iframe {
+  width:100%;
+  height:300px;
+  border:1px solid #fff;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">CUBESAT CONTROL PANEL</div>
+
+<div class="container">
+
+<div class="panel">
+<h3>TELEMETRY</h3>
+Temp: <span id="temp">--</span> °C<br>
+Voltage: <span id="volt">--</span> V<br>
+Battery: <span id="bat">--</span> %<br>
+GPS: <span id="gps">--</span>
+</div>
+
+<div class="panel">
+<h3>BMP280 SENSOR</h3>
+Temperature: <span id="bmp_temp">--</span> °C<br>
+Pressure: <span id="bmp_press">--</span> hPa<br>
+Altitude: <span id="bmp_alt">--</span> m
+</div>
+
+<div class="panel">
+<h3>CAMERA</h3>
+<iframe src="http://10.212.141.38:8081"></iframe>
+</div>
+
+<div class="panel">
+<h3>COMMANDS</h3>
+<button onclick="sendCmd('LEDON')">LED ON</button>
+<button onclick="sendCmd('LEDOFF')">LED OFF</button>
+</div>
+
+</div>
+
+<script>
+
+const ESP_IP = "10.212.141.21";
+
+// Fetch data
+setInterval(() => {
+  fetch(`http://${ESP_IP}/data`)
+  .then(res => res.json())
+  .then(data => {
+
+    console.log(data); // DEBUG
+
+    document.getElementById("temp").innerText = data.temp;
+    document.getElementById("volt").innerText = data.voltage;
+    document.getElementById("bat").innerText = data.battery;
+    document.getElementById("gps").innerText = data.lat + "," + data.lon;
+
+    document.getElementById("bmp_temp").innerText = data.bmp_temp;
+    document.getElementById("bmp_press").innerText = data.bmp_pressure;
+    document.getElementById("bmp_alt").innerText = data.bmp_altitude;
+
+  })
+  .catch(err => console.log("ERROR:", err));
+
+}, 1000);
+
+// Commands
+function sendCmd(cmd) {
+  fetch(`http://${ESP_IP}/cmd?val=${cmd}`);
+}
+
+</script>
+
+</body>
+</html>

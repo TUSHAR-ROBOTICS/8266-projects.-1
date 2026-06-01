@@ -1,0 +1,182 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-mono); }
+.mc-wrap { padding: 12px; }
+.header { text-align: center; padding: 10px 0 14px; }
+.header h2 { font-size: 18px; font-weight: 500; color: var(--color-text-primary); letter-spacing: 2px; }
+.header .status { font-size: 12px; color: var(--color-text-secondary); margin-top: 4px; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.dot.live { background: #22c55e; animation: blink 1.2s infinite; }
+.dot.offline { background: #ef4444; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.card { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+.card .label { font-size: 11px; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.card .value { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+.card .unit { font-size: 11px; color: var(--color-text-secondary); margin-left: 2px; }
+.card.wide { grid-column: span 2; }
+.card.full { grid-column: 1 / -1; }
+.card.alert-card { border-color: var(--color-border-warning); background: var(--color-background-warning); }
+.card.alert-card .label { color: var(--color-text-warning); }
+.cam-section { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.cam-box { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); overflow: hidden; background: #000; position: relative; }
+.cam-box img { width: 100%; height: 180px; object-fit: cover; display: block; }
+.cam-label { position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 4px; letter-spacing: 1px; }
+.cam-err { width: 100%; height: 180px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px; }
+.cam-err span { font-size: 11px; color: var(--color-text-secondary); }
+.map-box { border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); overflow: hidden; height: 220px; background: var(--color-background-secondary); }
+.map-box iframe { width: 100%; height: 100%; border: 0; }
+.map-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 6px; }
+.map-placeholder span { font-size: 12px; color: var(--color-text-secondary); }
+.conn-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.conn-badge { font-size: 11px; padding: 4px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); color: var(--color-text-secondary); background: var(--color-background-secondary); display: flex; align-items: center; gap: 5px; }
+.conn-badge.ok { border-color: #22c55e44; color: #16a34a; background: #f0fdf4; }
+.conn-badge.err { border-color: #ef444444; color: #dc2626; background: #fef2f2; }
+.footer { font-size: 11px; color: var(--color-text-secondary); text-align: center; padding-top: 6px; }
+</style>
+
+<div class="mc-wrap">
+  <div class="header">
+    <h2>MISSION CONTROL</h2>
+    <div class="status"><span class="dot live" id="liveDot"></span><span id="connStatus">Connecting to Pico @ 192.168.137.8…</span></div>
+  </div>
+
+  <div class="conn-row">
+    <div class="conn-badge" id="picoBadge"><span class="dot offline" id="picoDot"></span>Pico 2W — 192.168.137.8</div>
+    <div class="conn-badge" id="camBadge"><span class="dot offline" id="camDot"></span>Camera — 192.168.137.60</div>
+  </div>
+
+  <div class="grid">
+    <div class="card"><div class="label">Latitude</div><div class="value" id="lat">—</div></div>
+    <div class="card"><div class="label">Longitude</div><div class="value" id="lon">—</div></div>
+    <div class="card"><div class="label">Satellites</div><div class="value" id="sat">—</div></div>
+    <div class="card"><div class="label">Temperature</div><div class="value" id="temp">—<span class="unit">°C</span></div></div>
+    <div class="card"><div class="label">Humidity</div><div class="value" id="hum">—<span class="unit">%</span></div></div>
+    <div class="card"><div class="label">Pressure</div><div class="value" id="press">—<span class="unit">hPa</span></div></div>
+    <div class="card wide"><div class="label">BMP Altitude</div><div class="value" id="bmpAlt">—<span class="unit">m</span></div></div>
+  </div>
+
+  <div class="cam-section">
+    <div class="cam-box">
+      <img id="camFeed" src="http://192.168.137.60/stream" alt="Camera feed"
+        onerror="this.style.display='none';document.getElementById('camErr').style.display='flex'" />
+      <div id="camErr" class="cam-err" style="display:none">
+        <span>Camera offline</span>
+        <span style="font-size:10px">192.168.137.60</span>
+      </div>
+      <div class="cam-label">LIVE CAM</div>
+    </div>
+    <div class="cam-box">
+      <img id="camSnap" src="http://192.168.137.60/capture" alt="Snapshot"
+        onerror="this.style.display='none';document.getElementById('snapErr').style.display='flex'" />
+      <div id="snapErr" class="cam-err" style="display:none">
+        <span>No snapshot</span>
+        <span style="font-size:10px">192.168.137.60/capture</span>
+      </div>
+      <div class="cam-label">SNAPSHOT</div>
+    </div>
+  </div>
+
+  <div class="map-box" id="mapBox">
+    <div class="map-placeholder" id="mapPlaceholder">
+      <span>Waiting for GPS fix…</span>
+      <span style="font-size:10px">Map loads when location is valid</span>
+    </div>
+    <iframe id="mapFrame" style="display:none"></iframe>
+  </div>
+
+  <div class="footer" id="lastUpdate">No data yet</div>
+</div>
+
+<script>
+const PICO = 'http://192.168.137.8';
+const CAM  = 'http://192.168.137.60';
+
+let picoOk = false;
+let lastLat = null, lastLon = null;
+
+function setEl(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = val;
+}
+
+function markPico(ok) {
+  picoOk = ok;
+  const dot = document.getElementById('picoDot');
+  const badge = document.getElementById('picoBadge');
+  dot.className = 'dot ' + (ok ? 'live' : 'offline');
+  badge.className = 'conn-badge ' + (ok ? 'ok' : 'err');
+  document.getElementById('connStatus').textContent = ok
+    ? 'Live — Raspberry Pi Pico 2W' : 'Reconnecting to Pico…';
+}
+
+function markCam(ok) {
+  const dot = document.getElementById('camDot');
+  const badge = document.getElementById('camBadge');
+  dot.className = 'dot ' + (ok ? 'live' : 'offline');
+  badge.className = 'conn-badge ' + (ok ? 'ok' : 'err');
+}
+
+function updateMap(lat, lon) {
+  if (lat === lastLat && lon === lastLon) return;
+  lastLat = lat; lastLon = lon;
+  const frame = document.getElementById('mapFrame');
+  const placeholder = document.getElementById('mapPlaceholder');
+  if (lat != 0 && lat !== '0' && lat !== '—') {
+    frame.src = `https://maps.google.com/maps?q=${lat},${lon}&z=15&output=embed`;
+    frame.style.display = 'block';
+    placeholder.style.display = 'none';
+  }
+}
+
+function connectStream() {
+  try {
+    const es = new EventSource(PICO + '/stream');
+    es.onopen = () => markPico(true);
+    es.onmessage = (e) => {
+      try {
+        const d = JSON.parse(e.data);
+        markPico(true);
+        setEl('lat', d.lat || '—');
+        setEl('lon', d.lon || '—');
+        setEl('sat', d.sat || '—');
+        setEl('temp', (d.temp || '—') + '<span class="unit">°C</span>');
+        setEl('hum',  (d.hum  || '—') + '<span class="unit">%</span>');
+        setEl('press',(d.press|| '—') + '<span class="unit">hPa</span>');
+        setEl('bmpAlt',(d.bmpAlt||'—') + '<span class="unit">m</span>');
+        updateMap(d.lat, d.lon);
+        document.getElementById('lastUpdate').textContent =
+          'Last update: ' + new Date().toLocaleTimeString();
+      } catch(err) {}
+    };
+    es.onerror = () => {
+      markPico(false);
+      es.close();
+      setTimeout(connectStream, 4000);
+    };
+  } catch(e) {
+    markPico(false);
+    setTimeout(connectStream, 4000);
+  }
+}
+
+function pingCam() {
+  const img = new Image();
+  img.onload  = () => markCam(true);
+  img.onerror = () => markCam(false);
+  img.src = CAM + '/capture?t=' + Date.now();
+}
+
+document.getElementById('camFeed').onload  = () => markCam(true);
+document.getElementById('camFeed').onerror = () => markCam(false);
+
+connectStream();
+pingCam();
+setInterval(pingCam, 8000);
+
+setInterval(() => {
+  const snap = document.getElementById('camSnap');
+  snap.src = CAM + '/capture?t=' + Date.now();
+}, 5000);
+</script>
